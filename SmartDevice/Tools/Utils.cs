@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace SmartDevice
+namespace SmartDevice.Tools
 {
     public class Utils
     {

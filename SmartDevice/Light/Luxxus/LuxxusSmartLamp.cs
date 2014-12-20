@@ -291,14 +291,14 @@ namespace SmartDevice.Light.Luxxus
                 {
                     try
                     {
-                        byte[] header = Utils.BlockingRead(stream, 10);
+                        byte[] header = Tools.Utils.BlockingRead(stream, 10);
                         lastCommTime = DateTime.Now;
 
                         byte[] data = null;
 
                         if (header != null && header.Length == 10)
                         {
-                            data = Utils.BlockingRead(stream, header[9]);
+                            data = Tools.Utils.BlockingRead(stream, header[9]);
                             lastCommTime = DateTime.Now;
 
                             result = new byte[header.Length + header[9]];

@@ -22,7 +22,7 @@ namespace SmartDevice.Light.Luxxus
 
         public byte[] GetId()
         {
-            return Utils.GetBytes(this.Id);
+            return Tools.Utils.GetBytes(this.Id);
         }
     }
 }
