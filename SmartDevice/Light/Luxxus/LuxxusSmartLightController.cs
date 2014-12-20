@@ -368,10 +368,10 @@ namespace SmartDevice.Light.Luxxus
 
                 ms.Write(bId, 0, bId.Length);
 
-                ms.WriteByte((byte)luxxusLights[i].Intensity);
-                ms.WriteByte(luxxusLights[i].Color.Red);
-                ms.WriteByte(luxxusLights[i].Color.Green);
-                ms.WriteByte(luxxusLights[i].Color.Blue);
+                ms.WriteByte((byte)luxxusLights[i].State.Intensity);
+                ms.WriteByte(luxxusLights[i].State.Color.Red);
+                ms.WriteByte(luxxusLights[i].State.Color.Green);
+                ms.WriteByte(luxxusLights[i].State.Color.Blue);
             }
 
             if (WritePacket(ms.ToArray()))
@@ -409,7 +409,7 @@ namespace SmartDevice.Light.Luxxus
 
                 for (int i = 0; i < this.currentLampStates.Count; i++)
                 {
-                    result[i] = new SmartLight(this.currentLampStates[i].Id, this.currentLampStates[i].Intensity, this.currentLampStates[i].Color);
+                    result[i] = new SmartLight(this.currentLampStates[i].Id, this.currentLampStates[i].State);
                 }
             }
 

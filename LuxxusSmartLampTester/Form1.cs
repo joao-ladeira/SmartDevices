@@ -32,15 +32,15 @@ namespace LuxxusSmartLampTest
             {
                 byte intensity = (byte)trackBarIntensity.Value;
 
-                SmartLight[] states = smartLightController.GetLights();
+                SmartLight[] lights = smartLightController.GetLights();
 
-                foreach (SmartLight state in states)
+                foreach (SmartLight light in lights)
                 {
-                    state.Intensity = intensity;
-                    state.Color = new SmartLightColor(panelLampColor.BackColor.R, panelLampColor.BackColor.G, panelLampColor.BackColor.B);
+                    light.State.Intensity = intensity;
+                    light.State.Color = new SmartLightColor(panelLampColor.BackColor.R, panelLampColor.BackColor.G, panelLampColor.BackColor.B);
                 }
 
-                smartLightController.SetLights(states);
+                smartLightController.SetLights(lights);
             }
         }
 

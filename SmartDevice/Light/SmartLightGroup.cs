@@ -9,7 +9,7 @@ namespace SmartDevice.Light
     public class SmartLightGroup
     {
         public string Name;
-        public SmartLight[] Lights;
+        public uint[] LightIds;
 
         public SmartLightGroup()
         {

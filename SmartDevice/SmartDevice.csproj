@@ -36,10 +36,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Light\ISmartLightController.cs" />
-    <Compile Include="Light\Luxxus\LuxxusSmartLamp.cs" />
+    <Compile Include="Light\Luxxus\LuxxusSmartLightController.cs" />
     <Compile Include="Light\Luxxus\LuxxusSmartLight.cs" />
     <Compile Include="Light\SmartLight.cs" />
     <Compile Include="Light\SmartLightGroup.cs" />
+    <Compile Include="Light\SmartLightState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Light\SmartLightColor.cs" />
     <Compile Include="Tools\Serialization.cs" />
