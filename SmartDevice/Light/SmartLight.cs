@@ -26,7 +26,7 @@ namespace SmartDevice.Light
             this.State = new SmartLightState(state);
         }
 
-        public SmartLight(uint id, uint intensity, SmartLightColor color)
+        public SmartLight(uint id, ushort intensity, SmartLightColor color)
         {
             this.Id = id;
             this.State = new SmartLightState(intensity, color);

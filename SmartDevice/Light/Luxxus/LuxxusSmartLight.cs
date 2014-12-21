@@ -12,9 +12,17 @@ namespace SmartDevice.Light.Luxxus
         public LuxxusSmartLight(SmartLight light)
             : base(light)
         {
+            if (light != null && light.State != null)
+            {
+                if (light.State.Intensity > 100)
+                    light.State.Intensity = 100;
 
+                double intensity = Math.Round(light.State.Intensity * 255.0 / 100.0, MidpointRounding.ToEven);
+
+                this.State.Intensity = (ushort)intensity;
+            }
         }
-        public LuxxusSmartLight(uint id, uint intensity, SmartLightColor color)
+        public LuxxusSmartLight(uint id, ushort intensity, SmartLightColor color)
             : base(id, intensity, color)
         {
 

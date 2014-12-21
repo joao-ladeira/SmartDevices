@@ -4,7 +4,7 @@ namespace SmartDevice.Light
 {
     public class SmartLightState
     {
-        public uint Intensity;
+        public ushort Intensity;
         public SmartLightColor Color;
 
         public SmartLightState()
@@ -20,7 +20,7 @@ namespace SmartDevice.Light
             }
         }
 
-        public SmartLightState(uint intensity, SmartLightColor color)
+        public SmartLightState(ushort intensity, SmartLightColor color)
         {
             this.Intensity = intensity;
             this.Color = color;

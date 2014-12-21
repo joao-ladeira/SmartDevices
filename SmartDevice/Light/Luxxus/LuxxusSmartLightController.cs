@@ -20,28 +20,29 @@ namespace SmartDevice.Light.Luxxus
             QuerySignal = 0xc7
         }
 
-        object locker = new object();
-        object updatingDataLocker = new object();
-        bool connected = false;
-        DateTime lastCommTime = DateTime.MinValue;
+        object Locker = new object();
+        object UpdatingDataLocker = new object();
+        bool Connected = false;
+        DateTime LastCommTime = DateTime.MinValue;
 
-        byte deviceAddedFlag = 0x00;
-        byte deviceRemovedFlag = 0x00;
+        byte DeviceAddedFlag = 0x00;
+        byte DeviceRemovedFlag = 0x00;
 
-        Socket mainSocket;
-        Stream mainStream;
+        Socket MainSocket;
+        Stream MainStream;
 
-        IPEndPoint endpoint = null;
-        uint gatewayId;
+        IPEndPoint Endpoint = null;
+        uint GatewayId;
 
-        List<LuxxusSmartLight> currentLampStates = null;
+        List<LuxxusSmartLight> CurrentLampStates = null;
+        SmartLightGroup[] Groups;
 
         public LuxxusSmartLightController()
         {
             UdpClient udpClient = new UdpClient(41328);
 
-            byte[] sData = udpClient.Receive(ref endpoint);
-            endpoint.Port = 41330;
+            byte[] sData = udpClient.Receive(ref Endpoint);
+            Endpoint.Port = 41330;
             CheckIfUpdateIsNeeded(sData);
 
             System.Threading.Thread statusUpdateMonitorThread = new System.Threading.Thread(StatusUpdateMonitorRoutine);
@@ -57,13 +58,13 @@ namespace SmartDevice.Light.Luxxus
         {
             if (data != null && data.Length == 28)
             {
-                if (data[21] != deviceRemovedFlag ||
-                    data[22] != deviceAddedFlag)
+                if (data[21] != DeviceRemovedFlag ||
+                    data[22] != DeviceAddedFlag)
                 {
-                    this.deviceRemovedFlag = data[21];
-                    this.deviceAddedFlag = data[22];
+                    this.DeviceRemovedFlag = data[21];
+                    this.DeviceAddedFlag = data[22];
 
-                    this.gatewayId = BitConverter.ToUInt32(data, 2);
+                    this.GatewayId = BitConverter.ToUInt32(data, 2);
 
                     UpdateLampStates();
                 }
@@ -86,11 +87,11 @@ namespace SmartDevice.Light.Luxxus
         {
             while (true)
             {
-                if (this.connected)
+                if (this.Connected)
                 {
-                    lock (this.locker)
+                    lock (this.Locker)
                     {
-                        if (DateTime.Now > lastCommTime.AddMilliseconds(1000))
+                        if (DateTime.Now > LastCommTime.AddMilliseconds(1000))
                             Disconnect();
                     }
                 }
@@ -101,14 +102,14 @@ namespace SmartDevice.Light.Luxxus
 
         Stream GetStream()
         {
-            if (!connected)
+            if (!Connected)
             {
                 try
                 {
-                    this.mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    this.mainSocket.Connect(endpoint);
-                    this.mainStream = new NetworkStream(this.mainSocket);
-                    this.connected = true;
+                    this.MainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    this.MainSocket.Connect(Endpoint);
+                    this.MainStream = new NetworkStream(this.MainSocket);
+                    this.Connected = true;
                 }
                 catch
                 {
@@ -116,7 +117,7 @@ namespace SmartDevice.Light.Luxxus
                 }
             }
 
-            return this.mainStream;
+            return this.MainStream;
         }
 
         bool Disconnect()
@@ -125,25 +126,25 @@ namespace SmartDevice.Light.Luxxus
 
             try
             {
-                this.mainSocket.Disconnect(true);
+                this.MainSocket.Disconnect(true);
             }
             catch
             {
                 result = false;
             }
 
-            this.mainSocket = null;
-            this.mainStream = null;
-            this.connected = false;
+            this.MainSocket = null;
+            this.MainStream = null;
+            this.Connected = false;
 
             return result;
         }
 
         private void UpdateLampStates()
         {
-            lock (this.updatingDataLocker)
+            lock (this.UpdatingDataLocker)
             {
-                currentLampStates = new List<LuxxusSmartLight>();
+                CurrentLampStates = new List<LuxxusSmartLight>();
 
                 //f3:d4:21:f9:ee:07:00:00:1d:05:00:00:00:43:00
                 MemoryStream ms = new MemoryStream();
@@ -151,7 +152,7 @@ namespace SmartDevice.Light.Luxxus
                 ms.WriteByte(0xf3);
                 ms.WriteByte((byte)PacketType.QueryState);
 
-                byte[] bGatewayId = BitConverter.GetBytes(this.gatewayId);
+                byte[] bGatewayId = BitConverter.GetBytes(this.GatewayId);
                 if (!BitConverter.IsLittleEndian)
                     Array.Reverse(bGatewayId);
 
@@ -190,7 +191,7 @@ namespace SmartDevice.Light.Luxxus
                             byte B = bLampStates[startIndex + 6];
                             SmartLightColor color = new SmartLightColor(R, G, B);
 
-                            currentLampStates.Add(new LuxxusSmartLight(deviceId, intensity, color));
+                            CurrentLampStates.Add(new LuxxusSmartLight(deviceId, intensity, color));
                         }
                     }
                 }
@@ -258,7 +259,7 @@ namespace SmartDevice.Light.Luxxus
         {
             bool result = false;
 
-            lock (this.locker)
+            lock (this.Locker)
             {
                 Stream stream = GetStream();
 
@@ -268,7 +269,7 @@ namespace SmartDevice.Light.Luxxus
                     {
                         stream.Write(buffer, 0, buffer.Length);
                         result = true;
-                        lastCommTime = DateTime.Now;
+                        LastCommTime = DateTime.Now;
                     }
                     catch
                     {
@@ -283,7 +284,7 @@ namespace SmartDevice.Light.Luxxus
         {
             byte[] result = null;
 
-            lock (this.locker)
+            lock (this.Locker)
             {
                 Stream stream = GetStream();
 
@@ -292,14 +293,14 @@ namespace SmartDevice.Light.Luxxus
                     try
                     {
                         byte[] header = Tools.Utils.BlockingRead(stream, 10);
-                        lastCommTime = DateTime.Now;
+                        LastCommTime = DateTime.Now;
 
                         byte[] data = null;
 
                         if (header != null && header.Length == 10)
                         {
                             data = Tools.Utils.BlockingRead(stream, header[9]);
-                            lastCommTime = DateTime.Now;
+                            LastCommTime = DateTime.Now;
 
                             result = new byte[header.Length + header[9]];
                             
@@ -316,12 +317,10 @@ namespace SmartDevice.Light.Luxxus
             return result;
         }
 
-        
-
         void WaitSilentInterval()
         {
             //Dont ask... aparantly the gateway cannot handle requests very well with frequency below 100 ms 
-            TimeSpan diference = DateTime.Now - lastCommTime;
+            TimeSpan diference = DateTime.Now - LastCommTime;
             int sleepTime = 200;
 
             if (diference.TotalMilliseconds < sleepTime)
@@ -335,64 +334,106 @@ namespace SmartDevice.Light.Luxxus
         {
             bool result = false;
 
-            WaitSilentInterval();
-
-            MemoryStream ms = new MemoryStream();
-
-            ms.WriteByte(0xf2);
-            ms.WriteByte((byte)PacketType.LightControl);
-
-            ms.WriteByte(0xff);
-            ms.WriteByte(0xff);
-            ms.WriteByte(0xff);
-            ms.WriteByte(0xff);
-
-            ms.WriteByte(0x00);
-            ms.WriteByte(0x00);
-            ms.WriteByte(0x1d);
-
-            int dataLenght = lights.Length * 8 + 4;
-            ms.WriteByte((byte)dataLenght);//data lenght
-
-            ms.WriteByte(0x00);
-            ms.WriteByte(0x00);
-            ms.WriteByte(0x00);
-            ms.WriteByte(0x43);
-
-            LuxxusSmartLight[] luxxusLights = new LuxxusSmartLight[lights.Length];
-
-            for (int i = 0; i < lights.Length; i++)
+            if (lights != null && lights.Length > 0)
             {
-                luxxusLights[i] = new LuxxusSmartLight(lights[i]);
-                byte[] bId = luxxusLights[i].GetId();
+                WaitSilentInterval();
 
-                ms.Write(bId, 0, bId.Length);
+                MemoryStream ms = new MemoryStream();
 
-                ms.WriteByte((byte)luxxusLights[i].State.Intensity);
-                ms.WriteByte(luxxusLights[i].State.Color.Red);
-                ms.WriteByte(luxxusLights[i].State.Color.Green);
-                ms.WriteByte(luxxusLights[i].State.Color.Blue);
-            }
+                ms.WriteByte(0xf2);
+                ms.WriteByte((byte)PacketType.LightControl);
 
-            if (WritePacket(ms.ToArray()))
-            {
-                byte[] rData = GetResponse();
+                ms.WriteByte(0xff);
+                ms.WriteByte(0xff);
+                ms.WriteByte(0xff);
+                ms.WriteByte(0xff);
 
-                if (rData != null && rData.Length == 10)
+                ms.WriteByte(0x00);
+                ms.WriteByte(0x00);
+                ms.WriteByte(0x1d);
+
+                int dataLenght = lights.Length * 8 + 4;
+                ms.WriteByte((byte)dataLenght);//data lenght
+
+                ms.WriteByte(0x00);
+                ms.WriteByte(0x00);
+                ms.WriteByte(0x00);
+                ms.WriteByte(0x43);
+
+                LuxxusSmartLight[] luxxusLights = new LuxxusSmartLight[lights.Length];
+
+                for (int i = 0; i < lights.Length; i++)
                 {
-                    result = true;
+                    luxxusLights[i] = new LuxxusSmartLight(lights[i]);
+                    byte[] bId = luxxusLights[i].GetId();
 
-                    lock (this.updatingDataLocker)
+                    ms.Write(bId, 0, bId.Length);
+
+                    if (luxxusLights[i].State != null)
                     {
-                        foreach (LuxxusSmartLight light in luxxusLights)
+                        ms.WriteByte((byte)luxxusLights[i].State.Intensity);
+                        ms.WriteByte(luxxusLights[i].State.Color.Red);
+                        ms.WriteByte(luxxusLights[i].State.Color.Green);
+                        ms.WriteByte(luxxusLights[i].State.Color.Blue);
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                if (WritePacket(ms.ToArray()))
+                {
+                    byte[] rData = GetResponse();
+
+                    if (rData != null && rData.Length == 10)
+                    {
+                        result = true;
+
+                        lock (this.UpdatingDataLocker)
                         {
-                            for (int i = 0; i < this.currentLampStates.Count; i++)
+                            foreach (LuxxusSmartLight light in luxxusLights)
                             {
-                                if (this.currentLampStates[i].Id == light.Id)
-                                    this.currentLampStates[i] = luxxusLights[i];
+                                for (int i = 0; i < this.CurrentLampStates.Count; i++)
+                                {
+                                    if (this.CurrentLampStates[i].Id == light.Id)
+                                        this.CurrentLampStates[i] = light;
+                                }
                             }
                         }
                     }
+                }
+            }
+
+            return result;
+        }
+
+        public bool SetLights(string groupName, SmartLightState state)
+        {
+            bool result = false;
+
+            if (this.Groups != null)
+            {
+                SmartLightGroup groupToAffect = null;
+
+                foreach (SmartLightGroup group in this.Groups)
+                {
+                    if (group.Name == groupName)
+                    {
+                        groupToAffect = group;
+                        break;
+                    }
+                }
+
+                if (groupToAffect != null && groupToAffect.LightIds != null && groupToAffect.LightIds.Length > 0)
+                {
+                    SmartLight[] lights = new SmartLight[groupToAffect.LightIds.Length];
+                    for (int i = 0; i < lights.Length; i++)
+                    {
+                        lights[i] = new SmartLight(groupToAffect.LightIds[i], state);
+                    }
+
+                    result = SetLights(lights);
                 }
             }
 
@@ -403,17 +444,62 @@ namespace SmartDevice.Light.Luxxus
         {
             SmartLight[] result = null;
 
-            if (this.currentLampStates != null)
+            lock (this.UpdatingDataLocker)
             {
-                result = new SmartLight[this.currentLampStates.Count];
-
-                for (int i = 0; i < this.currentLampStates.Count; i++)
+                if (this.CurrentLampStates != null)
                 {
-                    result[i] = new SmartLight(this.currentLampStates[i].Id, this.currentLampStates[i].State);
+                    result = new SmartLight[this.CurrentLampStates.Count];
+
+                    for (int i = 0; i < this.CurrentLampStates.Count; i++)
+                    {
+                        SmartLightState state = new SmartLightState(this.CurrentLampStates[i].State);
+                        state.Intensity = (ushort)Math.Round(state.Intensity * 100.0 / 255.0, MidpointRounding.ToEven);
+                        result[i] = new SmartLight(this.CurrentLampStates[i].Id, state);
+                    }
                 }
             }
 
             return result;
         }
+
+        public SmartLight[] GetLights(string groupName)
+        {
+            SmartLight[] result = null;
+
+            SmartLight[] allLights = GetLights();
+
+            if (allLights != null && allLights.Length > 0 && this.Groups != null && this.Groups.Length > 0)
+            {
+                foreach (SmartLightGroup group in this.Groups)
+                {
+                    if (group.Name == groupName)
+                    {
+                        if (group.LightIds != null && group.LightIds.Length > 0)
+                        {
+                            result = new SmartLight[group.LightIds.Length];
+                            for (int i = 0; i < result.Length; i++ )
+                            {
+                                for (int j = 0; j < allLights.Length; j++)
+                                {
+                                    if (allLights[j].Id == group.LightIds[i])
+                                        result[i] = allLights[j];
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public bool LoadGroups(SmartLightGroup[] groups)
+        {
+            this.Groups = groups;
+
+            return true;
+        }
+
     }
 }
