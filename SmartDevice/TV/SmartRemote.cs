@@ -48,39 +48,45 @@ namespace SmartDevice.TV
             Off
         }
 
-        public SmartTvRemote()
+        public SmartTvRemote(string sIpAddress = null)
         {
             IPAddress ipAddress = null;
-            IPAddress.TryParse("192.168.1.84", out ipAddress);
-            IPEndPoint endpoint = new IPEndPoint(ipAddress, 8082);
 
-            this.mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            this.mainSocket.Connect(endpoint);
+            if (IPAddress.TryParse(sIpAddress, out ipAddress))
+            {
+                IPEndPoint endpoint = new IPEndPoint(ipAddress, 8082);
 
-            this.mainStream = new NetworkStream(mainSocket);
+                this.mainSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                this.mainSocket.Connect(endpoint);
 
-            byte[] bHello = BlockingRead(this.mainStream, 6);
+                this.mainStream = new NetworkStream(mainSocket);
 
-            string hello = System.Text.Encoding.ASCII.GetString(bHello);
+                byte[] bHello = Tools.Utils.BlockingRead(this.mainStream, 6);
 
-            // 33=up 34=Down 36=Menu 37=Left? 38=right? 39? 74=Info 111=Opçoes 112=GuiaTv 113=Favoritos
+                string hello = System.Text.Encoding.ASCII.GetString(bHello);
+
+                // 33=up 34=Down 36=Menu 37=Left? 38=right? 39? 74=Info 111=Opçoes 112=GuiaTv 113=Favoritos
+            }
         }
 
         public bool SendKey(SRKeyCode key)
         {
             bool result = false;
 
-            byte[] bCommand = GetKeyCodeCommand(key);
-
-            if (bCommand != null)
+            if (this.mainStream != null)
             {
-                this.mainStream.Write(bCommand, 0, bCommand.Length);
+                byte[] bCommand = GetKeyCodeCommand(key);
 
-                byte[] scResult = BlockingRead(this.mainStream, 3);
-
-                if (scResult != null)
+                if (bCommand != null)
                 {
-                    result = scResult.SequenceEqual(this.aok);
+                    this.mainStream.Write(bCommand, 0, bCommand.Length);
+
+                    byte[] scResult = Tools.Utils.BlockingRead(this.mainStream, 3);
+
+                    if (scResult != null)
+                    {
+                        result = scResult.SequenceEqual(this.aok);
+                    }
                 }
             }
 
@@ -124,33 +130,6 @@ namespace SmartDevice.TV
 
                 case SRKeyCode.Play: result = new byte[] { 0x6b, 0x65, 0x79, 0x3d, 0x31, 0x32, 0x30, 0x0a }; break;
                 case SRKeyCode.Pause: result = new byte[] { 0x6b, 0x65, 0x79, 0x3d, 0x31, 0x31, 0x39, 0x0a }; break;
-            }
-
-            return result;
-        }
-
-        byte[] BlockingRead(Stream streamToRead, int size)
-        {
-            byte[] result = new byte[size];
-
-            int messageSizeBytesMissing = size;
-            while (messageSizeBytesMissing > 0)
-            {
-                int bytesRead = streamToRead.Read(result, size - messageSizeBytesMissing, messageSizeBytesMissing);
-
-                if (bytesRead == 0)
-                {
-                    break;
-                }
-                else
-                {
-                    messageSizeBytesMissing = messageSizeBytesMissing - bytesRead;
-                }
-            }
-
-            if (messageSizeBytesMissing != 0)
-            {
-                result = null;
             }
 
             return result;

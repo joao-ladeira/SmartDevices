@@ -17,7 +17,11 @@ namespace SmartTvBoxTester
         {
             InitializeComponent();
 
-            SmartTvRemote remote = new SmartTvRemote();
+            SmartTvRemote remote = new SmartTvRemote("192.168.1.84");
+
+            //change to channel 14 example
+            remote.SendKey(SmartTvRemote.SRKeyCode.Key1);
+            remote.SendKey(SmartTvRemote.SRKeyCode.Key4);
         }
     }
 }
